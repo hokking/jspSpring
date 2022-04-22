@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cus.mapper.CusMapper">
+	 <!-- * selectKey?
+		 일련번호 처리
+		 마이바티스는 쿼리 실행 시 파라미터를 치환해줌 
+	 -->
+	 
+	 <!-- 고객(1) 별 이미지(n) -->
+	 <resultMap type="cusVO" id="cusMap">
+	 	<id property="cusNum" column="CUS_NUM" />
+	 	<result property="cusNm" column="CUS_NM"/>
+	 	<result property="addr" column="ADDR"/>
+	 	<result property="pne" column="PNE"/>
+	 	<collection property="attachFilesVO" resultMap="filesMap"></collection>
+	 </resultMap>
+	 
+	 <resultMap type="attachFilesVO" id="filesMap">
+<!-- 	 	<id property="id" column="ID"/> -->
+	 	<result property="uploadFileName" column="UPLOAD_FILE_NAME"/>
+	 </resultMap>
+	 
+	 <!-- 회원상세정보 resultMap -->
+	<resultMap type="cusVO" id="userAuthMap">
+		<id     property="username" column="USERNAME" />
+		<result property="cusNm" column="CUS_NM" />
+		<result property="addr" column="ADDR" />
+		<result property="pne" column="PNE" />
+		<result property="password" column="PASSWORD" />
+		<result property="enabled" column="ENABLED" />
+		<result property="sal" column="SAL" />
+		
+		<collection property="userAuthList" resultMap="authMap"></collection>
+	</resultMap>
+	
+	<resultMap type="userAuth" id="authMap">
+		<result property="username" column="USERNAME" />
+		<result property="auth" column="AUTH" />
+	</resultMap>
+	 
+	 <!-- 고객 등록 -->
+	<insert id="insert" parameterType="cusVO">
+		<!-- ******* -->
+		<selectKey order="BEFORE" keyProperty="cusNum" resultType="String">
+			SELECT 'CUS' || LPAD(NVL(MAX(SUBSTR(CUS_NUM, 4)), 0) + 1, 5, '0') FROM CUS
+		</selectKey>
+		INSERT INTO CUS(CUS_NUM, CUS_NM, ADDR, PNE)
+		VALUES(#{cusNum}, #{cusNm}, 
+			   #{addr} || ' ' || #{addr1} || ' ' || #{addr2}, 
+			   #{pne})
+	</insert>
+	
+	<!-- attach_files 테이블로 첨부파일 insert -->
+	<insert id="insertAttachFiles" parameterType="attachFilesVO">
+		<foreach collection="list" item="item" index="index"
+			open="INSERT ALL " separator=" " close="SELECT * FROM DUAL">
+			INTO ATTACH_FILES(ID, SEQ, UPLOAD_FILE_NAME, 
+			    UPLOAD_FILE_SIZE, REGIST_DT, REGISTER_ID)
+			VALUES(#{item.id}, #{item.seq}, #{item.uploadFileName}, 
+				#{item.uploadFileSize}, SYSDATE, #{item.registerId})
+		</foreach>
+	</insert>
+	
+	<select id="select" parameterType="hashMap" resultType="cusVO">
+		SELECT T.RNUM, T.CUS_NUM, T.CUS_NM, T.ADDR, T.PNE
+		FROM(
+		SELECT ROW_NUMBER() OVER (ORDER BY CUS_NUM) RNUM, CUS_NUM, CUS_NM, ADDR, PNE 
+		  FROM CUS
+		 WHERE 1 = 1
+		    <if test="keyWord!=null and keyWord!=''">
+			    AND    (CUS_NM LIKE '%' || #{keyWord} || '%'
+			    OR     ADDR LIKE '%' || #{keyWord} || '%'
+			    OR     PNE LIKE '%' || #{keyWord} || '%')
+		    </if>
+		) T
+		WHERE T.RNUM BETWEEN #{currentPage} * #{size} - (#{size} - 1) AND #{currentPage} * #{size}
+	</select>
+	
+	<!-- 고객 목록의 totalCount -->
+	<select id="getTotal" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		  FROM CUS
+		 WHERE 1 = 1
+		    <if test="keyWord!=null and keyWord!=''">
+			    AND    (CUS_NM LIKE '%' || #{keyWord} || '%'
+			    OR     ADDR LIKE '%' || #{keyWord} || '%'
+			    OR     PNE LIKE '%' || #{keyWord} || '%')
+		    </if>
+	</select>
+	
+	<!-- 고객 상세 -->
+	<select id="detail" parameterType="String" resultMap="cusMap">
+		SELECT C.CUS_NUM, C.CUS_NM, C.ADDR, C.PNE, A.ID, A.UPLOAD_FILE_NAME
+		  FROM CUS C, ATTACH_FILES A
+		 WHERE C.CUS_NUM = A.ID(+)
+		   AND C.CUS_NUM = #{cusNum}
+	</select>
+	
+	<update id="update" parameterType="cusVO">
+		UPDATE CUS
+		   SET ADDR = #{addr}, PNE = #{pne}
+		 WHERE CUS_NUM = #{cusNum}
+	</update>
+	
+	
+	<!-- 스프링 시큐리티 로그인 -->
+	<select id="read" parameterType="String" resultMap="userAuthMap">
+		SELECT VU.USERNAME, VU.CUS_NM, VU.ADDR, VU.PNE, VU.PASSWORD, VU.ENABLED, VU.SAL, VUA.AUTH
+		  FROM VW_USER VU LEFT OUTER JOIN VW_USER_AUTH VUA
+		    ON(VU.USERNAME = VUA.USERNAME)
+		 WHERE VU.USERNAME = #{userName}
+	</select>
+	
+	<delete id="deleteAttachFiles" parameterType="String">
+		DELETE FROM ATTACH_FILES
+		WHERE ID = #{id}
+	</delete>
+</mapper>

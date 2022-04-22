@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:security="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	<!-- 로그인 성공! -->
+	<bean id="customLoginSuccess"
+		class="kr.or.ddit.security.CustomLoginSuccessHandler"></bean>
+		
+	<!-- 로그인 실패! -->
+	<bean id="customAccessDenied" 
+		class="kr.or.ddit.security.CustomAccessDeniedHandler"></bean>
+	
+	<!-- 사용자가 정의한 비밀번호 암호화 처리기를 빈으로 등록 -->
+	<bean id="customPasswordEncoder"
+		class="kr.or.ddit.security.CustomNoOpPasswordEncoder"></bean>
+	
+	<!-- 스프링 시큐리티의 UserDetailService를 구현해서 사용자의 상세 정보를 얻어오기 위함 -->
+	<bean id="customUserDetailService" 
+		class="kr.or.ddit.security.CustomUserDetailService"></bean>
+	
+	<security:http>
+	<!-- URI 패턴으로 접근 제한을 설정함 
+	pattern : url 요청 경로 
+	access  : 접근 제한 정책
+	-->
+	
+<!-- 		<security:intercept-url pattern="/board/list" access="permitAll" /> -->
+		<!-- /cus/detail 화면으로 갈 때 로그인 화면 띄워지고 ROLE_MEMBER만 허용 -->
+		<security:intercept-url pattern="/cus/detail" 
+			access="hasRole('ROLE_MEMBER')" />
+<!-- 		<security:intercept-url pattern="/notice/list" access="permitAll" /> -->
+<!-- 		<security:intercept-url pattern="/notice/register"  -->
+<!-- 			access="hasRole('ROLE_ADMIN')" /> -->
+		
+		<!-- 사용자가 정의한 로그인 페이지의 URI를 지정함 -->
+		<security:form-login login-page="/login" 
+			authentication-success-handler-ref="customLoginSuccess" />	
+			
+		<!-- 로그아웃. 세션을 무효화 함 -->
+		<security:logout logout-url="/logout" invalidate-session="true"
+			delete-cookies="remember-me.JSESSION_ID" />
+
+		<!-- 접근 거부 처리자(접근 거부가 발생한 상황을 처리)의 URI를 지정 -->
+		<security:access-denied-handler ref="customAccessDenied" />
+		
+		<!-- root-context.xml에 있음 
+			- 데이터소스를 지정하고 테이블(persistent_logins)을 이용해서 기존 로그인 정보를 기록
+			- 쿠키의 유효시간을 지정(604800 : 7일)
+		-->
+		<security:remember-me data-source-ref="dataSource"
+			token-validity-seconds="604800"/>
+		
+	</security:http>
+
+	
+	<security:authentication-manager>
+	<!-- 
+		지정된 아이디와 패스워드로 로그인이 가능하도록 설정함 
+		스프링 시큐리티 5버전부터는 패스워드 암호화 처리기를 반드시 이용하도록 변경이 되었음
+	-->
+		<security:authentication-provider user-service-ref="customUserDetailService">
+			<!-- 사용자가 정의한 비밀번호 암호화 처리기 지정 -->
+			<security:password-encoder ref="customPasswordEncoder" />
+		</security:authentication-provider>
+	</security:authentication-manager>
+</beans>
