@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://xmlns.jcp.org/xml/ns/javaee" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd" id="WebApp_ID" version="3.1">
+  <display-name>JSPBook</display-name>
+  <welcome-file-list>
+    <welcome-file>index.html</welcome-file>
+    <welcome-file>index.htm</welcome-file>
+    <welcome-file>index.jsp</welcome-file>
+    <welcome-file>default.html</welcome-file>
+    <welcome-file>default.htm</welcome-file>
+    <welcome-file>default.jsp</welcome-file>
+  </welcome-file-list>
+  <!-- 
+  	error-code : 404(페이지가 없음), 500(개발자 실수) 등의 응답 상태 코드
+  	location : 오류페이지의 URI(URL + 기능)
+  -->
+  <error-page>
+  	<error-code>404</error-code>
+  	<location>/error/exceptionNoPage.jsp</location>
+  </error-page>
+  <error-page>
+  	<error-code>500</error-code>
+  	<location>/error/500.jsp</location>
+  </error-page>
+  <error-page>
+  	<exception-type>java.lang.NullPointerException</exception-type>
+  	<location>/error/500.jsp</location>
+  </error-page>
+  
+	<!-- 시큐리티 역할 admin  관리 시작 -->
+<!--     <security-role> -->
+<!-- 		<role-name>admin</role-name> -->
+<!-- 	</security-role> -->
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>JSPBook</web-resource-name>
+			<!-- 접근을 제한할 요청 경로  -->
+			<url-pattern>/ch04/addProduct.jsp</url-pattern>
+			<http-method>GET</http-method>
+		</web-resource-collection>
+		<auth-constraint>
+			<description></description>
+			<!-- 권한이 부여된 role 이름 -->
+			<role-name>admin</role-name>
+		</auth-constraint>
+	</security-constraint>
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>JSPBook</web-resource-name>
+			<!-- 접근을 제한할 요청 경로  -->
+			<url-pattern>/ch03/*</url-pattern>
+			<http-method>GET</http-method>
+		</web-resource-collection>
+		<auth-constraint>
+			<description></description>
+			<!-- 권한이 부여된 role 이름 -->
+			<role-name>tomcat</role-name>
+		</auth-constraint>
+	</security-constraint>
+	<!-- 시큐리티 인증 설정 -->
+	<login-config>
+		<!-- BASIC 인증 처리 기법으로 설정 -->
+<!-- 		<auth-method>BASIC</auth-method> -->
+		<!-- FORM 기반 인증 처리 기법으로 설정 -->
+		<auth-method>FORM</auth-method>
+		<form-login-config>
+			<!-- 인증 처리를 위한 로그인 페이지 설정 -->
+			<form-login-page>/ch04/login.jsp</form-login-page>
+			<!-- 인증 실패 시 오류 페이지 설정 -->
+			<form-error-page>/ch04/login_failed.jsp</form-error-page>
+		</form-login-config>
+	</login-config>
+	<!-- 시큐리티 역할 role1  관리 끝 -->
+	<!-- 
+		웹 어플리케이션이 시작할 때(톰켓을 시작할 때) 
+		DBCPInit 서블릿 클래스가 자동으로 시작되고,
+		init(() 메서드가 호출됨
+	-->
+	<servlet>
+		<servlet-name>oracleDriverLoader</servlet-name>
+		<servlet-class>jdbc.DBCPInit</servlet-class>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+</web-app>
